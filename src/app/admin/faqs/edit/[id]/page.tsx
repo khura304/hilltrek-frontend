@@ -24,7 +24,8 @@ export default function EditFaqPage() {
         question: "",
         answer: "",
         order: 0,
-        is_active: true
+        is_active: true,
+        page: ""
     });
 
     useEffect(() => {
@@ -36,7 +37,8 @@ export default function EditFaqPage() {
                     question: response.data.question,
                     answer: response.data.answer,
                     order: response.data.order,
-                    is_active: response.data.is_active
+                    is_active: response.data.is_active,
+                    page: response.data.page || ""
                 });
                 setError(null);
             } catch (err: any) {
@@ -52,7 +54,7 @@ export default function EditFaqPage() {
         }
     }, [id]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({
             ...prev,
@@ -152,22 +154,51 @@ export default function EditFaqPage() {
                     />
                 </div>
 
-                {/* Order */}
-                <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
-                        <Hash size={12} /> Display Order
-                    </label>
-                    <input
-                        type="number"
-                        name="order"
-                        value={formData.order}
-                        onChange={handleChange}
-                        min="0"
-                        required
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 transition-colors placeholder:text-white/20"
-                        placeholder="0"
-                    />
-                    <p className="text-[9px] text-gray-500 uppercase tracking-wider">Lower numbers appear first</p>
+                {/* Order and Page Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Order */}
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
+                            <Hash size={12} /> Display Order
+                        </label>
+                        <input
+                            type="number"
+                            name="order"
+                            value={formData.order}
+                            onChange={handleChange}
+                            min="0"
+                            required
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 transition-colors placeholder:text-white/20"
+                            placeholder="0"
+                        />
+                        <p className="text-[9px] text-gray-500 uppercase tracking-wider">Lower numbers appear first</p>
+                    </div>
+
+                    {/* Target Page */}
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
+                            <HelpCircle size={12} /> Target Page
+                        </label>
+                        <select
+                            name="page"
+                            value={formData.page}
+                            onChange={handleChange}
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 transition-colors appearance-none cursor-pointer"
+                        >
+                            <option value="" className="bg-secondary text-white">Global (All Pages)</option>
+                            <option value="home" className="bg-secondary text-white">Home Page</option>
+                            <option value="tours" className="bg-secondary text-white">Tours Page</option>
+                            <option value="destinations" className="bg-secondary text-white">Destinations Page</option>
+                            <option value="accommodations" className="bg-secondary text-white">Accommodations Page</option>
+                            <option value="vehicles" className="bg-secondary text-white">Vehicles Page</option>
+                            <option value="about" className="bg-secondary text-white">About Us</option>
+                            <option value="contact" className="bg-secondary text-white">Contact Page</option>
+                            <option value="custom-booking" className="bg-secondary text-white">Custom Booking</option>
+                            <option value="blog" className="bg-secondary text-white">Blog Page</option>
+                            <option value="gallery" className="bg-secondary text-white">Gallery Page</option>
+                        </select>
+                        <p className="text-[9px] text-gray-500 uppercase tracking-wider">Where should this FAQ be displayed?</p>
+                    </div>
                 </div>
 
                 {/* Status Toggle */}
@@ -209,6 +240,6 @@ export default function EditFaqPage() {
                     </button>
                 </div>
             </form>
-        </div>
+        </div >
     );
 }

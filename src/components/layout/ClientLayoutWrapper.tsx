@@ -33,7 +33,19 @@ export default function ClientLayoutWrapper({
                     <main className="flex-grow">
                         {children}
                     </main>
-                    <FAQ />
+                    <FAQ page={
+                        pathname === "/" ? "home" :
+                            pathname?.startsWith("/tours") ? "tours" :
+                                pathname?.startsWith("/destinations") ? "destinations" :
+                                    pathname?.startsWith("/accommodations") ? "accommodations" :
+                                        pathname?.startsWith("/vehicles") ? "vehicles" :
+                                            pathname?.startsWith("/about") ? "about" :
+                                                pathname?.startsWith("/contact") ? "contact" :
+                                                    pathname?.startsWith("/custom-booking") ? "custom-booking" :
+                                                        pathname?.startsWith("/blog") ? "blog" :
+                                                            pathname?.startsWith("/gallery") ? "gallery" :
+                                                                undefined
+                    } />
                     <Footer />
                 </>
             )}

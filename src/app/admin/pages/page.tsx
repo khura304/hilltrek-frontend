@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getPages, PageContent } from "@/lib/api";
-import { FileText, Edit2 } from "lucide-react";
+import { getPages, PageContent, deletePage } from "@/lib/api";
+import { FileText, Edit2, Trash2 } from "lucide-react";
 
 export default function AdminPagesList() {
     const [pages, setPages] = useState<PageContent[]>([]);
@@ -22,6 +22,19 @@ export default function AdminPagesList() {
         };
         fetchPages();
     }, []);
+
+    const handleDelete = async (slug: string) => {
+        if (!confirm("Are you sure you want to delete this page?")) return;
+
+        try {
+            await deletePage(slug);
+            setPages(pages.filter(p => p.slug !== slug));
+            alert("Page deleted successfully!");
+        } catch (error) {
+            console.error("Failed to delete page:", error);
+            alert("Failed to delete page.");
+        }
+    };
 
     if (loading) {
         return <div className="text-white">Loading pages...</div>;
@@ -49,12 +62,20 @@ export default function AdminPagesList() {
                             <div className="p-3 bg-primary/20 rounded-xl text-primary group-hover:bg-primary group-hover:text-white transition-colors">
                                 <FileText size={24} />
                             </div>
-                            <Link
-                                href={`/admin/pages/${page.slug}`}
-                                className="p-2 bg-white/5 hover:bg-primary rounded-lg text-white/50 hover:text-white transition-all"
-                            >
-                                <Edit2 size={18} />
-                            </Link>
+                            <div className="flex gap-2">
+                                <Link
+                                    href={`/admin/pages/${page.slug}`}
+                                    className="p-2 bg-white/5 hover:bg-primary rounded-lg text-white/50 hover:text-white transition-all"
+                                >
+                                    <Edit2 size={18} />
+                                </Link>
+                                <button
+                                    onClick={() => handleDelete(page.slug)}
+                                    className="p-2 bg-white/5 hover:bg-red-500 rounded-lg text-white/50 hover:text-white transition-all"
+                                >
+                                    <Trash2 size={18} />
+                                </button>
+                            </div>
                         </div>
 
                         <h3 className="text-xl font-bold text-white mb-1 capitalize">{page.title}</h3>

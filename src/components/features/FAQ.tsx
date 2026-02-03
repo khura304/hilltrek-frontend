@@ -12,7 +12,11 @@ interface FAQItem {
     is_active: boolean;
 }
 
-export default function FAQ() {
+interface FAQProps {
+    page?: string;
+}
+
+export default function FAQ({ page }: FAQProps) {
     const [openIndex, setOpenIndex] = useState<number | null>(0);
     const [faqs, setFaqs] = useState<FAQItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -20,7 +24,8 @@ export default function FAQ() {
     useEffect(() => {
         const fetchFaqs = async () => {
             try {
-                const response = await api.get('/faqs');
+                const url = page ? `/faqs?page=${page}` : '/faqs';
+                const response = await api.get(url);
                 setFaqs(response.data);
             } catch (error) {
                 console.error('Failed to fetch FAQs:', error);
@@ -30,7 +35,7 @@ export default function FAQ() {
         };
 
         fetchFaqs();
-    }, []);
+    }, [page]);
 
     if (loading) {
         return (

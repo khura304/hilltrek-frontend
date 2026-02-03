@@ -145,6 +145,8 @@ export interface PageContent {
     hero_subtitle?: string;
     hero_image?: string;
     content?: any;
+    is_in_navbar?: boolean;
+    is_in_footer?: boolean;
     created_at?: string;
     updated_at?: string;
 }
@@ -206,6 +208,10 @@ export const updatePageContent = async (slug: string, data: Partial<PageContent>
 export const createPage = async (data: Partial<PageContent>): Promise<PageContent> => {
     const response = await api.post('/admin/pages', data);
     return response.data.page;
+};
+
+export const deletePage = async (slug: string): Promise<void> => {
+    await api.delete(`/admin/pages/${slug}`);
 };
 
 // ------------------------

@@ -28,6 +28,39 @@ export default function AdminAccommodationForm({ accommodation, isEditing }: Adm
         features: accommodation?.features ? (typeof accommodation.features === 'string' ? JSON.parse(accommodation.features) : accommodation.features) : [],
     });
 
+    const [imageSource, setImageSource] = useState<"local" | "url">("url");
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(accommodation?.image_url || null);
+
+    // Sync state when accommodation prop changes
+    useEffect(() => {
+        if (accommodation) {
+            setFormData({
+                destination_id: accommodation.destination_id || "",
+                title: accommodation.title || "",
+                price: accommodation.price || "",
+                total_nights: accommodation.total_nights || "",
+                max_guests: accommodation.max_guests || "",
+                description: accommodation.description || "",
+                image_url: accommodation.image_url || "",
+                is_featured: accommodation.is_featured || false,
+                features: accommodation.features ? (typeof accommodation.features === 'string' ? JSON.parse(accommodation.features) : accommodation.features) : [],
+            });
+            setImagePreview(accommodation.image_url || null);
+        }
+    }, [accommodation]);
+
+    // Handle image preview for local file
+    useEffect(() => {
+        if (imageSource === "local" && imageFile) {
+            const objectUrl = URL.createObjectURL(imageFile);
+            setImagePreview(objectUrl);
+            return () => URL.revokeObjectURL(objectUrl);
+        } else if (imageSource === "url") {
+            setImagePreview(formData.image_url || null);
+        }
+    }, [imageSource, imageFile, formData.image_url]);
+
     useEffect(() => {
         const fetchDestinations = async () => {
             try {
@@ -48,16 +81,33 @@ export default function AdminAccommodationForm({ accommodation, isEditing }: Adm
         setLoading(true);
 
         try {
-            const dataToSubmit = {
-                ...formData,
-                is_featured: formData.is_featured ? 1 : 0,
-            };
+            const formDataToSubmit = new FormData();
+            formDataToSubmit.append('destination_id', String(formData.destination_id));
+            formDataToSubmit.append('title', formData.title);
+            formDataToSubmit.append('price', String(formData.price));
+            formDataToSubmit.append('total_nights', String(formData.total_nights));
+            formDataToSubmit.append('max_guests', String(formData.max_guests));
+            formDataToSubmit.append('description', formData.description);
+            formDataToSubmit.append('is_featured', formData.is_featured ? '1' : '0');
+            formDataToSubmit.append('features', JSON.stringify(formData.features));
+
+            if (imageSource === "local" && imageFile) {
+                formDataToSubmit.append('image_file', imageFile);
+            } else {
+                formDataToSubmit.append('image_url', formData.image_url);
+            }
 
             if (isEditing && accommodation) {
-                await api.put(`/accommodations/${accommodation.id}`, dataToSubmit);
+                // Laravel PUT workaround for FormData
+                formDataToSubmit.append('_method', 'PUT');
+                await api.post(`/accommodations/${accommodation.id}`, formDataToSubmit, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
                 showToast("success", "Accommodation updated successfully!");
             } else {
-                await api.post('/accommodations', dataToSubmit);
+                await api.post('/accommodations', formDataToSubmit, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
                 showToast("success", "Accommodation created successfully!");
             }
             router.push('/admin/accommodations');
@@ -134,16 +184,66 @@ export default function AdminAccommodationForm({ accommodation, isEditing }: Adm
                 </div>
             </div>
 
-            <div className="space-y-2 relative z-10">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Asset Image URL</label>
-                <input
-                    type="url"
-                    required
-                    className="w-full bg-slate-950/80 border border-white/10 rounded-2xl p-4 text-white focus:ring-2 focus:ring-primary/50 outline-none transition-all font-medium placeholder:text-white/20"
-                    value={formData.image_url}
-                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                    placeholder="/images/accommodation.jpg"
-                />
+            <div className="space-y-4 relative z-10">
+                <div className="flex flex-col md:flex-row gap-8">
+                    <div className="flex-1 space-y-4">
+                        <div className="flex gap-4 mb-4">
+                            <button
+                                type="button"
+                                onClick={() => setImageSource("url")}
+                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${imageSource === "url" ? "bg-primary text-white" : "bg-white/5 text-gray-400 hover:bg-white/10"}`}
+                            >
+                                Online Link
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setImageSource("local")}
+                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${imageSource === "local" ? "bg-primary text-white" : "bg-white/5 text-gray-400 hover:bg-white/10"}`}
+                            >
+                                Local File
+                            </button>
+                        </div>
+
+                        {imageSource === "url" ? (
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Asset Image URL</label>
+                                <input
+                                    type="url"
+                                    required={imageSource === "url"}
+                                    className="w-full bg-slate-950/80 border border-white/10 rounded-2xl p-4 text-white focus:ring-2 focus:ring-primary/50 outline-none transition-all font-medium placeholder:text-white/20"
+                                    value={formData.image_url || ""}
+                                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                                    placeholder="/images/accommodation.jpg"
+                                />
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Upload Local Image</label>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    required={imageSource === "local" && !isEditing}
+                                    className="w-full bg-slate-950/80 border border-white/10 rounded-2xl p-4 text-white focus:ring-2 focus:ring-primary/50 outline-none transition-all font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-primary/20 file:text-primary hover:file:bg-primary/30"
+                                    onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                                />
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="w-full md:w-64 h-48 bg-slate-950/80 border border-white/10 rounded-2xl overflow-hidden relative group">
+                        {imagePreview ? (
+                            <img
+                                src={imagePreview}
+                                alt="Preview"
+                                className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                            />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-600 text-[10px] font-black uppercase tracking-widest">
+                                No Preview
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
 
             <div className="space-y-2 relative z-10">

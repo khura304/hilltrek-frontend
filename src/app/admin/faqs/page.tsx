@@ -22,6 +22,7 @@ interface Faq {
     answer: string;
     order: number;
     is_active: boolean;
+    page?: string;
     created_at: string;
 }
 
@@ -156,6 +157,12 @@ export default function AdminFaqsPage() {
                                         }`}>
                                         {faq.is_active ? 'Active' : 'Hidden'}
                                     </div>
+
+                                    {faq.page && (
+                                        <div className="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded border text-primary bg-primary/10 border-primary/20">
+                                            Page: {faq.page}
+                                        </div>
+                                    )}
 
                                     <div className="flex items-center gap-2">
                                         <button

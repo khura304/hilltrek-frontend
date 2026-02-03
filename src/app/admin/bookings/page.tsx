@@ -16,9 +16,12 @@ import {
     AlertCircle,
     Download,
     Trash2,
-    CheckCircle2,
     XCircle,
-    Loader2
+    Loader2,
+    X,
+    Globe,
+    Users,
+    CreditCard
 } from "lucide-react";
 import api from "@/lib/api";
 import Link from "next/link";
@@ -30,6 +33,7 @@ export default function AdminBookingsPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [filterStatus, setFilterStatus] = useState("all");
+    const [selectedBooking, setSelectedBooking] = useState<any | null>(null);
 
     useEffect(() => {
         fetchBookings();
@@ -233,7 +237,11 @@ export default function AdminBookingsPage() {
                                         </td>
                                         <td className="px-8 py-6 text-right">
                                             <div className="flex items-center justify-end gap-2">
-                                                <button className="p-2 bg-white/5 hover:bg-primary/20 hover:text-primary rounded-lg border border-white/10 transition-all" title="View Details">
+                                                <button
+                                                    onClick={() => setSelectedBooking(booking)}
+                                                    className="p-2 bg-white/5 hover:bg-primary/20 hover:text-primary rounded-lg border border-white/10 transition-all"
+                                                    title="View Details"
+                                                >
                                                     <ArrowRight size={14} strokeWidth={3} />
                                                 </button>
                                                 {booking.status !== 'cancelled' && (
@@ -263,6 +271,169 @@ export default function AdminBookingsPage() {
                     </div>
                 </div>
             </div>
+            {/* Booking Details Modal */}
+            {selectedBooking && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div
+                        className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl transition-opacity animate-in fade-in duration-300"
+                        onClick={() => setSelectedBooking(null)}
+                    />
+
+                    <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-900 border border-white/10 rounded-[2.5rem] shadow-2xl shadow-primary/5 p-8 md:p-12 animate-in zoom-in-95 duration-300 no-scrollbar">
+                        {/* Modal Header */}
+                        <div className="flex justify-between items-start mb-12">
+                            <div>
+                                <div className="inline-flex items-center gap-2 bg-primary/10 px-3 py-1 rounded-full border border-primary/20 mb-4">
+                                    <ShieldCheck size={10} className="text-primary" />
+                                    <span className="text-[8px] font-black text-primary uppercase tracking-[0.2em]">Verified Booking Details</span>
+                                </div>
+                                <h2 className="text-4xl font-black text-white tracking-tighter uppercase italic leading-none">
+                                    Booking <span className="text-primary not-italic">Ref: {selectedBooking.id * 123456}</span>
+                                </h2>
+                            </div>
+                            <button
+                                onClick={() => setSelectedBooking(null)}
+                                className="p-4 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-2xl border border-white/10 transition-all"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+                            {/* Main Info Column */}
+                            <div className="lg:col-span-2 space-y-12">
+                                {/* Service Info Card */}
+                                <div className="bg-white/5 border border-white/10 rounded-3xl p-8">
+                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-6">Service Overview</p>
+                                    <div className="flex gap-6 items-start">
+                                        <div className="w-24 h-24 rounded-2xl bg-slate-950 border border-white/10 overflow-hidden flex-shrink-0">
+                                            {(selectedBooking.tour?.image_url || selectedBooking.vehicle?.image_url || selectedBooking.accommodation?.image_url) ? (
+                                                <img
+                                                    src={selectedBooking.tour?.image_url || selectedBooking.vehicle?.image_url || selectedBooking.accommodation?.image_url}
+                                                    alt="Service"
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-gray-700">
+                                                    <Globe size={32} />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex-1">
+                                            <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-2">
+                                                {selectedBooking.tour?.title || selectedBooking.vehicle?.title || selectedBooking.accommodation?.title}
+                                            </h3>
+                                            <div className="flex flex-wrap gap-4 items-center">
+                                                <div className="flex items-center gap-2 text-primary font-bold text-[10px] uppercase tracking-widest">
+                                                    <MapPin size={12} />
+                                                    {selectedBooking.tour?.destination?.name || selectedBooking.vehicle?.destination?.name || selectedBooking.accommodation?.destination?.name || 'Global'}
+                                                </div>
+                                                <div className="flex items-center gap-2 text-gray-500 font-bold text-[10px] uppercase tracking-widest">
+                                                    <CalendarCheck size={12} />
+                                                    {selectedBooking.travel_date}
+                                                </div>
+                                                <div className="flex items-center gap-2 text-gray-500 font-bold text-[10px] uppercase tracking-widest">
+                                                    <Users size={12} />
+                                                    {selectedBooking.num_travelers} Travelers
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Traveler List Card */}
+                                <div className="space-y-6">
+                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] px-2 uppercase">Traveler Information</p>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {selectedBooking.travelers?.map((traveler: any, idx: number) => (
+                                            <div key={idx} className="bg-white/[0.03] border border-white/5 rounded-2xl p-6 hover:border-primary/20 transition-all group">
+                                                <p className="text-[8px] font-black text-primary/50 uppercase tracking-widest mb-3">Traveler #{idx + 1}</p>
+                                                <p className="text-sm font-black text-white uppercase mb-4 tracking-tight group-hover:text-primary transition-colors">{traveler.name}</p>
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center gap-3 text-[10px] text-gray-500 font-bold uppercase tracking-wider">
+                                                        <Mail size={12} className="text-gray-600" />
+                                                        {traveler.email || 'No email provided'}
+                                                    </div>
+                                                    <div className="flex items-center gap-3 text-[10px] text-gray-500 font-bold uppercase tracking-wider">
+                                                        <Phone size={12} className="text-gray-600" />
+                                                        {traveler.phone || 'No phone provided'}
+                                                    </div>
+                                                    {traveler.passport_number && (
+                                                        <div className="flex items-center gap-3 text-[10px] text-gray-500 font-bold uppercase tracking-wider">
+                                                            <ShieldCheck size={12} className="text-gray-600" />
+                                                            Passport: {traveler.passport_number}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Sidebar Column */}
+                            <div className="space-y-8">
+                                {/* Booking Status */}
+                                <div className="bg-white/5 border border-white/10 rounded-3xl p-8">
+                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-6">Booking Status</p>
+                                    <div className="space-y-6">
+                                        <div>
+                                            <label className="text-[8px] font-black text-gray-600 uppercase tracking-widest block mb-2">Current Lifecycle</label>
+                                            <div className={`inline-flex px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border ${getStatusStyle(selectedBooking.status)}`}>
+                                                {selectedBooking.status}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="text-[8px] font-black text-gray-600 uppercase tracking-widest block mb-2">Payment Health</label>
+                                            <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border ${getPaymentStyle(selectedBooking.payment_status)} border-white/5`}>
+                                                <CreditCard size={12} />
+                                                {selectedBooking.payment_status}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Financial Summary */}
+                                <div className="bg-primary/5 border border-primary/10 rounded-3xl p-8">
+                                    <p className="text-[10px] font-black text-primary/50 uppercase tracking-[0.2em] mb-6 tracking-[0.3em]">Financial Summary</p>
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between items-center text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                                            <span>Base Price</span>
+                                            <span className="text-white">${selectedBooking.total_price / selectedBooking.num_travelers}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                                            <span>Qty Travelers</span>
+                                            <span className="text-white">x{selectedBooking.num_travelers}</span>
+                                        </div>
+                                        <div className="h-px bg-white/5 my-2" />
+                                        <div className="flex justify-between items-end pt-2">
+                                            <span className="text-[8px] font-black text-primary uppercase tracking-[0.3em]">Total Value</span>
+                                            <span className="text-3xl font-black text-white leading-none tracking-tighter">${selectedBooking.total_price}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Customer Contact */}
+                                <div className="bg-white/5 border border-white/10 rounded-3xl p-8">
+                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-6 uppercase">Primary Customer</p>
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-primary font-black text-[10px]">
+                                                {selectedBooking.user?.name?.charAt(0)}
+                                            </div>
+                                            <p className="text-xs font-black text-white uppercase tracking-tight">{selectedBooking.user?.name}</p>
+                                        </div>
+                                        <div className="flex items-center gap-3 text-[10px] text-gray-500 font-bold uppercase tracking-wider">
+                                            <Mail size={12} />
+                                            {selectedBooking.user?.email}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

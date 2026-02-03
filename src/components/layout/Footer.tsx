@@ -51,6 +51,9 @@ export default function Footer() {
                             <li><Link href="/tours" className="text-gray-400 hover:text-primary transition-colors">All Packages</Link></li>
                             <li><Link href="/contact" className="text-gray-400 hover:text-primary transition-colors">Contact Us</Link></li>
                             <li><Link href="/blog" className="text-gray-400 hover:text-primary transition-colors">Travel Blog</Link></li>
+                            {settings.footer_links && JSON.parse(settings.footer_links).map((link: any, i: number) => (
+                                <li key={i}><Link href={link.url} className="text-gray-400 hover:text-primary transition-colors">{link.label}</Link></li>
+                            ))}
                         </ul>
                     </div>
 
@@ -79,11 +82,11 @@ export default function Footer() {
                         {(() => {
                             let links = [];
                             try {
-                                if (settings.footer_links) {
-                                    links = JSON.parse(settings.footer_links);
+                                if (settings.footer_bottom_links) {
+                                    links = JSON.parse(settings.footer_bottom_links);
                                 }
                             } catch (e) {
-                                console.error("Failed to parse footer links", e);
+                                console.error("Failed to parse footer bottom links", e);
                             }
 
                             if (links.length === 0) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import api, { Destination } from "@/lib/api";
 
@@ -22,16 +22,64 @@ export default function AdminDestinationForm({ destination, isEditing }: AdminDe
         image_url: destination?.image_url || "",
     });
 
+    const [imageSource, setImageSource] = useState<"local" | "url">("url");
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(destination?.image_url || null);
+
+    // Sync state when destination prop changes
+    useEffect(() => {
+        if (destination) {
+            setFormData({
+                name: destination.name || "",
+                city: destination.city || "",
+                country: destination.country || "",
+                best_time_to_visit: destination.best_time_to_visit || "",
+                description: destination.description || "",
+                image_url: destination.image_url || "",
+            });
+            setImagePreview(destination.image_url || null);
+        }
+    }, [destination]);
+
+    // Handle image preview for local file
+    useEffect(() => {
+        if (imageSource === "local" && imageFile) {
+            const objectUrl = URL.createObjectURL(imageFile);
+            setImagePreview(objectUrl);
+            return () => URL.revokeObjectURL(objectUrl);
+        } else if (imageSource === "url") {
+            setImagePreview(formData.image_url || null);
+        }
+    }, [imageSource, imageFile, formData.image_url]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
         try {
+            const formDataToSubmit = new FormData();
+            formDataToSubmit.append('name', formData.name);
+            formDataToSubmit.append('city', formData.city);
+            formDataToSubmit.append('country', formData.country);
+            formDataToSubmit.append('best_time_to_visit', formData.best_time_to_visit);
+            formDataToSubmit.append('description', formData.description);
+
+            if (imageSource === "local" && imageFile) {
+                formDataToSubmit.append('image_file', imageFile);
+            } else {
+                formDataToSubmit.append('image_url', formData.image_url);
+            }
+
             if (isEditing && destination) {
-                await api.put(`/destinations/${destination.id}`, formData);
+                formDataToSubmit.append('_method', 'PUT');
+                await api.post(`/destinations/${destination.id}`, formDataToSubmit, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
                 alert("Destination updated successfully!");
             } else {
-                await api.post('/destinations', formData);
+                await api.post('/destinations', formDataToSubmit, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
                 alert("Destination created successfully!");
             }
             router.push('/admin/destinations');
@@ -97,16 +145,66 @@ export default function AdminDestinationForm({ destination, isEditing }: AdminDe
                 </div>
             </div>
 
-            <div className="space-y-2 relative z-10">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Image URL</label>
-                <input
-                    type="url"
-                    required
-                    className="w-full bg-slate-950/80 border border-white/10 rounded-2xl p-4 text-white focus:ring-2 focus:ring-primary/50 outline-none transition-all font-medium placeholder:text-white/20"
-                    value={formData.image_url}
-                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                    placeholder="/images/your-image.jpg"
-                />
+            <div className="space-y-4 relative z-10">
+                <div className="flex flex-col md:flex-row gap-8">
+                    <div className="flex-1 space-y-4">
+                        <div className="flex gap-4 mb-4">
+                            <button
+                                type="button"
+                                onClick={() => setImageSource("url")}
+                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${imageSource === "url" ? "bg-primary text-white" : "bg-white/5 text-gray-400 hover:bg-white/10"}`}
+                            >
+                                Online Link
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setImageSource("local")}
+                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${imageSource === "local" ? "bg-primary text-white" : "bg-white/5 text-gray-400 hover:bg-white/10"}`}
+                            >
+                                Local File
+                            </button>
+                        </div>
+
+                        {imageSource === "url" ? (
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Image URL</label>
+                                <input
+                                    type="url"
+                                    required={imageSource === "url"}
+                                    className="w-full bg-slate-950/80 border border-white/10 rounded-2xl p-4 text-white focus:ring-2 focus:ring-primary/50 outline-none transition-all font-medium placeholder:text-white/20"
+                                    value={formData.image_url || ""}
+                                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                                    placeholder="/images/your-image.jpg"
+                                />
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Upload Local Image</label>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    required={imageSource === "local" && !isEditing}
+                                    className="w-full bg-slate-950/80 border border-white/10 rounded-2xl p-4 text-white focus:ring-2 focus:ring-primary/50 outline-none transition-all font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-primary/20 file:text-primary hover:file:bg-primary/30"
+                                    onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                                />
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="w-full md:w-64 h-48 bg-slate-950/80 border border-white/10 rounded-2xl overflow-hidden relative group">
+                        {imagePreview ? (
+                            <img
+                                src={imagePreview}
+                                alt="Preview"
+                                className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                            />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-600 text-[10px] font-black uppercase tracking-widest">
+                                No Preview
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
 
             <div className="space-y-2 relative z-10">

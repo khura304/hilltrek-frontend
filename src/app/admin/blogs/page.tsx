@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import api from "@/lib/api";
-import { FileText, Edit2, Plus, Trash2 } from "lucide-react";
+import { FileText, Edit2, Plus, Trash2, Eye, EyeOff } from "lucide-react";
 import { useNotification } from "@/contexts/NotificationContext";
 
 interface Blog {
@@ -33,6 +33,18 @@ export default function AdminBlogList() {
             console.error("Failed to fetch blogs:", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleToggleStatus = async (blog: Blog) => {
+        try {
+            const newStatus = !blog.is_published;
+            await api.put(`/admin/blogs/${blog.id}`, { is_published: newStatus });
+            setBlogs(blogs.map(b => b.id === blog.id ? { ...b, is_published: newStatus } : b));
+            showToast("success", `Blog ${newStatus ? 'published' : 'hidden'} successfully`);
+        } catch (error) {
+            console.error("Failed to toggle status:", error);
+            showToast("error", "Failed to update blog status.");
         }
     };
 
@@ -100,6 +112,13 @@ export default function AdminBlogList() {
                                     >
                                         <Edit2 size={16} />
                                     </Link>
+                                    <button
+                                        onClick={() => handleToggleStatus(blog)}
+                                        className={`p-2 rounded-lg transition-all ${blog.is_published ? 'bg-green-500/10 hover:bg-green-500 text-green-500 hover:text-white' : 'bg-gray-500/10 hover:bg-gray-500 text-gray-400 hover:text-white'}`}
+                                        title={blog.is_published ? "Hide Blog" : "Show Blog"}
+                                    >
+                                        {blog.is_published ? <Eye size={16} /> : <EyeOff size={16} />}
+                                    </button>
                                     <button
                                         onClick={() => handleDelete(blog.id)}
                                         className="p-2 bg-red-500/10 hover:bg-red-500 rounded-lg text-red-400 hover:text-white transition-all"

@@ -68,6 +68,7 @@ export default function Navbar() {
         { name: "Custom Booking", href: "/custom-booking" },
         { name: "Gallery", href: "/gallery" },
         { name: "Blog", href: "/blog" },
+        ...(settings.navbar_links ? JSON.parse(settings.navbar_links).map((link: any) => ({ name: link.label, href: link.url })) : []),
         { name: "About Us", href: "/about" },
         { name: "Contact", href: "/contact" },
     ];

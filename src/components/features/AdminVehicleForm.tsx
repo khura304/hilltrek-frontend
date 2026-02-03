@@ -28,6 +28,39 @@ export default function AdminVehicleForm({ vehicle, isEditing }: AdminVehicleFor
         features: vehicle?.features ? (typeof vehicle.features === 'string' ? JSON.parse(vehicle.features) : vehicle.features) : [],
     });
 
+    const [imageSource, setImageSource] = useState<"local" | "url">("url");
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(vehicle?.image_url || null);
+
+    // Sync state when vehicle prop changes
+    useEffect(() => {
+        if (vehicle) {
+            setFormData({
+                destination_id: vehicle.destination_id || "",
+                title: vehicle.title || "",
+                price: vehicle.price || "",
+                duration_days: vehicle.duration_days || "",
+                max_passengers: vehicle.max_passengers || "",
+                description: vehicle.description || "",
+                image_url: vehicle.image_url || "",
+                is_featured: vehicle.is_featured || false,
+                features: vehicle.features ? (typeof vehicle.features === 'string' ? JSON.parse(vehicle.features) : vehicle.features) : [],
+            });
+            setImagePreview(vehicle.image_url || null);
+        }
+    }, [vehicle]);
+
+    // Handle image preview for local file
+    useEffect(() => {
+        if (imageSource === "local" && imageFile) {
+            const objectUrl = URL.createObjectURL(imageFile);
+            setImagePreview(objectUrl);
+            return () => URL.revokeObjectURL(objectUrl);
+        } else if (imageSource === "url") {
+            setImagePreview(formData.image_url || null);
+        }
+    }, [imageSource, imageFile, formData.image_url]);
+
     useEffect(() => {
         const fetchDestinations = async () => {
             try {
@@ -48,16 +81,32 @@ export default function AdminVehicleForm({ vehicle, isEditing }: AdminVehicleFor
         setLoading(true);
 
         try {
-            const dataToSubmit = {
-                ...formData,
-                is_featured: formData.is_featured ? 1 : 0,
-            };
+            const formDataToSubmit = new FormData();
+            formDataToSubmit.append('destination_id', String(formData.destination_id));
+            formDataToSubmit.append('title', formData.title);
+            formDataToSubmit.append('price', String(formData.price));
+            formDataToSubmit.append('duration_days', String(formData.duration_days));
+            formDataToSubmit.append('max_passengers', String(formData.max_passengers));
+            formDataToSubmit.append('description', formData.description);
+            formDataToSubmit.append('is_featured', formData.is_featured ? '1' : '0');
+            formDataToSubmit.append('features', JSON.stringify(formData.features));
+
+            if (imageSource === "local" && imageFile) {
+                formDataToSubmit.append('image_file', imageFile);
+            } else {
+                formDataToSubmit.append('image_url', formData.image_url);
+            }
 
             if (isEditing && vehicle) {
-                await api.put(`/vehicles/${vehicle.id}`, dataToSubmit);
+                formDataToSubmit.append('_method', 'PUT');
+                await api.post(`/vehicles/${vehicle.id}`, formDataToSubmit, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
                 showToast("success", "Vehicle updated successfully!");
             } else {
-                await api.post('/vehicles', dataToSubmit);
+                await api.post('/vehicles', formDataToSubmit, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
                 showToast("success", "Vehicle created successfully!");
             }
             router.push('/admin/vehicles');
@@ -134,16 +183,66 @@ export default function AdminVehicleForm({ vehicle, isEditing }: AdminVehicleFor
                 </div>
             </div>
 
-            <div className="space-y-2 relative z-10">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Asset Image URL</label>
-                <input
-                    type="url"
-                    required
-                    className="w-full bg-slate-950/80 border border-white/10 rounded-2xl p-4 text-white focus:ring-2 focus:ring-primary/50 outline-none transition-all font-medium placeholder:text-white/20"
-                    value={formData.image_url}
-                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                    placeholder="/images/vehicle.jpg"
-                />
+            <div className="space-y-4 relative z-10">
+                <div className="flex flex-col md:flex-row gap-8">
+                    <div className="flex-1 space-y-4">
+                        <div className="flex gap-4 mb-4">
+                            <button
+                                type="button"
+                                onClick={() => setImageSource("url")}
+                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${imageSource === "url" ? "bg-primary text-white" : "bg-white/5 text-gray-400 hover:bg-white/10"}`}
+                            >
+                                Online Link
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setImageSource("local")}
+                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${imageSource === "local" ? "bg-primary text-white" : "bg-white/5 text-gray-400 hover:bg-white/10"}`}
+                            >
+                                Local File
+                            </button>
+                        </div>
+
+                        {imageSource === "url" ? (
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Asset Image URL</label>
+                                <input
+                                    type="url"
+                                    required={imageSource === "url"}
+                                    className="w-full bg-slate-950/80 border border-white/10 rounded-2xl p-4 text-white focus:ring-2 focus:ring-primary/50 outline-none transition-all font-medium placeholder:text-white/20"
+                                    value={formData.image_url || ""}
+                                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                                    placeholder="/images/vehicle.jpg"
+                                />
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Upload Local Image</label>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    required={imageSource === "local" && !isEditing}
+                                    className="w-full bg-slate-950/80 border border-white/10 rounded-2xl p-4 text-white focus:ring-2 focus:ring-primary/50 outline-none transition-all font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-primary/20 file:text-primary hover:file:bg-primary/30"
+                                    onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                                />
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="w-full md:w-64 h-48 bg-slate-950/80 border border-white/10 rounded-2xl overflow-hidden relative group">
+                        {imagePreview ? (
+                            <img
+                                src={imagePreview}
+                                alt="Preview"
+                                className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                            />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-600 text-[10px] font-black uppercase tracking-widest">
+                                No Preview
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
 
             <div className="space-y-2 relative z-10">
